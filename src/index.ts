@@ -65,7 +65,10 @@ export class omniBus<T extends omniMap = Record<string, any>> {
     eventName: K,
     callback: (payload: T[K]) => void
   ) {
+    let fired = false;
     const wrapper = ((payload: K extends "*" ? { event: string; data: any } : T[K]) => {
+      if (fired) return;
+      fired = true;
       callback(payload as T[K]);
       this.unsubscribe(eventName, wrapper);
     }) as (payload: K extends "*" ? { event: string; data: any } : T[K]) => void;

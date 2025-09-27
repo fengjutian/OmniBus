@@ -1,6 +1,6 @@
 {
   "name": "omnibus-ts",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A lightweight, type-safe EventBus with singleton, wildcard, and async queue",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -10,12 +10,20 @@
   ],
   "scripts": {
     "build": "tsc && rollup -c --bundleConfigAsCjs",
-    "prepublishOnly": "npm run build"
+    "dev": "rollup -c --bundleConfigAsCjs -w",
+    "dev:ts": "tsc -w",
+    "dev:rollup": "rollup -c --bundleConfigAsCjs -w",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^20.19.17",
     "rollup": "^4.0.0",
     "rollup-plugin-typescript2": "^0.36.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^1.6.1"
   }
 }
