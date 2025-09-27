@@ -75,16 +75,112 @@ offLoginB();
 
 ## 一次性订阅
 
-```ts
-const bus = new omniBus<MyEvents>();
+## 在 Vue 3 中使用（Vue 3 + TypeScript）
 
-bus.once('user:login', (data) => {
-  console.log('首次登录:', data.username);
-});
+> 下面展示三种常见集成方式：全局单例、应用级 provide/inject、插件。
 
-bus.publish('user:login', { userId: '1', username: 'alice' }); // 触发
-bus.publish('user:login', { userId: '1', username: 'alice' }); // 不再触发
+### 方式 A：全局单例（简单直接）
+```vue
+<script setup lang="ts">
+import { onMounted, onBeforeUnmount } from 'vue'
+import { omniBus } from 'omnibus-ts'
+
+interface MyEvents {
+  'user:login': { userId: string; username: string }
+}
+
+// 使用全局单例，跨组件共享
+const bus = omniBus.getInstance<MyEvents>()
+let off: (() => void) | null = null
+
+onMounted(() => {
+  off = bus.subscribe('user:login', (d) => {
+    console.log('login:', d.username)
+  })
+
+  // 示例发布
+  bus.publish('user:login', { userId: '1', username: 'alice' })
+})
+
+onBeforeUnmount(() => {
+  off?.()
+})
+</script>
 ```
+
+### 方式 B：应用级 provide/inject（更利于隔离与测试）
+在 `main.ts` 提供一个应用级总线实例：
+```ts
+// main.ts
+import { createApp, type InjectionKey } from 'vue'
+import App from './App.vue'
+import { omniBus } from 'omnibus-ts'
+
+interface MyEvents {
+  'user:login': { userId: string; username: string }
+}
+
+export const BusKey: InjectionKey<omniBus<MyEvents>> = Symbol('Bus')
+
+const app = createApp(App)
+app.provide(BusKey, new omniBus<MyEvents>())
+app.mount('#app')
+```
+在组件中注入并使用：
+```vue
+<script setup lang="ts">
+import { inject, onMounted, onBeforeUnmount } from 'vue'
+import type { omniBus } from 'omnibus-ts'
+import { BusKey } from './main'
+
+interface MyEvents {
+  'user:login': { userId: string; username: string }
+}
+
+const bus = inject<omniBus<MyEvents>>(BusKey)!
+let off: (() => void) | undefined
+
+onMounted(() => {
+  off = bus.subscribe('user:login', (d) => console.log('login:', d.username))
+})
+
+onBeforeUnmount(() => { off?.() })
+</script>
+```
+
+### 方式 C：插件（可选，集中封装）
+```ts
+// busPlugin.ts
+import type { App, Plugin, InjectionKey } from 'vue'
+import { omniBus } from 'omnibus-ts'
+
+export interface MyEvents {
+  'user:login': { userId: string; username: string }
+}
+
+export const BusKey: InjectionKey<omniBus<MyEvents>> = Symbol('Bus')
+
+export const OmniBusPlugin: Plugin = {
+  install(app: App) {
+    const bus = new omniBus<MyEvents>()
+    app.provide(BusKey, bus)
+    // 可选：挂到全局属性
+    // (app.config.globalProperties as any).$bus = bus
+  },
+}
+```
+在 `main.ts` 中安装：
+```ts
+import { createApp } from 'vue'
+import App from './App.vue'
+import { OmniBusPlugin } from './busPlugin'
+
+createApp(App).use(OmniBusPlugin).mount('#app')
+```
+
+提示：
+- 订阅返回的函数请在 `onBeforeUnmount` 中调用，避免内存泄漏。
+- `publish` 为微任务异步执行，在 UI 中可配合 `nextTick` 查看更新。
 
 ## API 概览
 - `new omniBus<T>()`：创建事件总线，`T` 为事件名到载荷的映射
