@@ -39,40 +39,38 @@ interface MyEvents {
   'message:received': { id: string; content: string };
 }
 
-// 2) 创建或获取总线
+// 2) 创建或获取总线（任选其一）
 const bus = new omniBus<MyEvents>();
-// 或：const bus = omniBus.getInstance<MyEvents>(); // 全局单例
+// const bus = omniBus.getInstance<MyEvents>(); // 全局单例
 
-// 3) 订阅
-const off = bus.subscribe('user:login', (data) => {
-  console.log(`用户 ${data.username} 已登录`);
+// 3) 订阅（返回取消订阅函数）
+const offLoginA = bus.subscribe('user:login', (data) => {
+  console.log('[A] 登录:', data.userId, data.username);
 });
 
-// 4) 发布（异步执行订阅回调）
-bus.publish('user:login', { userId: '123', username: 'zhangsan' });
+// 可以为同一事件添加多个订阅者
+const offLoginB = bus.subscribe('user:login', (data) => {
+  console.log('[B] 登录:', data.username);
+});
 
-// 5) 取消订阅
-off();
-```
+// 4) 一次性订阅（仅触发一次后自动移除）
+bus.once('user:logout', (data) => {
+  console.log('已退出:', data.userId);
+});
 
-## 通配符订阅（监听所有事件）
-
-```ts
-import { omniBus } from 'omnibus-ts';
-
-interface MyEvents {
-  'user:login': { userId: string; username: string };
-  'message:received': { id: string; content: string };
-}
-
-const bus = new omniBus<MyEvents>();
-
-// "*" 订阅回调的参数为 { event: string; data: any }
+// 5) 通配符订阅（监听所有事件）
 bus.subscribe('*', ({ event, data }) => {
-  console.log('触发事件:', event, '数据:', data);
+  console.log('[*] 事件:', event, '数据:', data);
 });
 
-bus.publish('user:login', { userId: '1', username: 'alice' });
+// 6) 发布（回调在微任务队列中异步执行）
+bus.publish('user:login', { userId: '123', username: 'alice' });
+bus.publish('message:received', { id: 'm1', content: 'hello' });
+bus.publish('user:logout', { userId: '123' });
+
+// 7) 取消订阅（避免内存泄漏）
+offLoginA();
+offLoginB();
 ```
 
 ## 一次性订阅
@@ -145,3 +143,20 @@ bus.publish('user:login', { userId: '1', username: 'alice' }); // 不再触发
 
 ## 许可证
 MIT
+
+### 类型提示与最佳实践
+- 将事件名变量声明为常量以保持字面量类型：
+  ```ts
+  const LOGIN = 'user:login' as const;
+  bus.subscribe(LOGIN, (data) => { /* ... */ });
+  ```
+- 通配符订阅回调签名为 `{ event: string; data: any }`，若需更严格类型，可在内部做类型守卫：
+  ```ts
+  bus.subscribe('*', ({ event, data }) => {
+    if (event === 'message:received') {
+      const d = data as MyEvents['message:received'];
+      // d.id / d.content 有类型提示
+    }
+  });
+  ```
+- 使用全局单例适合跨模块共享同一总线；若需隔离，请使用 `new omniBus()` 创建独立实例。
