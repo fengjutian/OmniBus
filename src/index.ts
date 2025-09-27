@@ -1,4 +1,4 @@
-export interface EventMap {
+export interface omniMap {
   [key: string]: any;
 }
 
@@ -7,15 +7,15 @@ export interface EventMap {
  * - 支持 "*" 通配事件
  * - 支持异步队列（publish 异步执行）
  */
-export class EventBus<T extends EventMap = Record<string, any>> {
-  private static _instance: EventBus<any> | null = null;
+export class omniBus<T extends omniMap = Record<string, any>> {
+  private static _instance: omniBus<any> | null = null;
 
   /** 全局单例 */
-  static getInstance<EM extends EventMap = Record<string, any>>() {
-    if (!EventBus._instance) {
-      EventBus._instance = new EventBus<EM>();
+  static getInstance<EM extends omniMap = Record<string, any>>() {
+    if (!omniBus._instance) {
+      omniBus._instance = new omniBus<EM>();
     }
-    return EventBus._instance as EventBus<EM>;
+    return omniBus._instance as omniBus<EM>;
   }
 
   private events: {

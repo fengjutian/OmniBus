@@ -1,4 +1,4 @@
-export interface EventMap {
+export interface omniMap {
     [key: string]: any;
 }
 /**
@@ -6,10 +6,10 @@ export interface EventMap {
  * - 支持 "*" 通配事件
  * - 支持异步队列（publish 异步执行）
  */
-export declare class EventBus<T extends EventMap = Record<string, any>> {
+export declare class omniBus<T extends omniMap = Record<string, any>> {
     private static _instance;
     /** 全局单例 */
-    static getInstance<EM extends EventMap = Record<string, any>>(): EventBus<EM>;
+    static getInstance<EM extends omniMap = Record<string, any>>(): omniBus<EM>;
     private events;
     /** 订阅 */
     subscribe<K extends keyof T | "*">(eventName: K, callback: (payload: K extends "*" ? {

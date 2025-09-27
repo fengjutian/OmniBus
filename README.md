@@ -1,129 +1,135 @@
-# OmniBus
+# omnibus-ts (OmniBus)
 
-一个轻量级、类型安全的 EventBus 实现，具有单例模式、通配符事件和异步队列功能。
+一个轻量级、类型安全的 EventBus 实现，支持全局单例、通配符事件与异步发布。
 
 ## 特性
-
-- 🌟 **类型安全**：使用 TypeScript 泛型提供完整的类型推断和类型检查
-- 🔄 **全局单例**：支持通过 `getInstance()` 方法获取全局单例实例
-- 🔍 **通配符事件**：支持使用 `"*"` 监听所有事件
-- ⏱️ **异步队列**：事件发布采用异步执行方式，避免阻塞主线程
-- 🔥 **一次性订阅**：支持通过 `once()` 方法进行一次性事件订阅
+- 类型安全：泛型驱动的端到端类型提示与校验
+- 全局单例：`EventBus.getInstance()` 获取全局唯一实例
+- 通配符事件：使用 `"*"` 订阅所有事件
+- 异步发布：`publish` 回调在微任务队列执行，不阻塞主流程
+- 一次性订阅：`once` 只触发一次后自动取消订阅
 
 ## 安装
 
 ```bash
-npm install omnibus
+npm install omnibus-ts
 ```
 
-## 使用方法
+## 快速上手
 
-### 基本用法
+```ts
+import { EventBus } from 'omnibus-ts';
 
-```typescript
-import { EventBus } from 'omnibus';
-
-// 定义事件类型
+// 1) 定义事件类型映射
 interface MyEvents {
   'user:login': { userId: string; username: string };
   'user:logout': { userId: string };
   'message:received': { id: string; content: string };
 }
 
-// 创建 EventBus 实例
+// 2) 创建或获取总线
 const bus = new EventBus<MyEvents>();
+// 或：const bus = EventBus.getInstance<MyEvents>(); // 全局单例
 
-// 订阅事件
-const unsubscribe = bus.subscribe('user:login', (data) => {
+// 3) 订阅
+const off = bus.subscribe('user:login', (data) => {
   console.log(`用户 ${data.username} 已登录`);
 });
 
-// 发布事件
+// 4) 发布
 bus.publish('user:login', { userId: '123', username: 'zhangsan' });
 
-// 取消订阅
-unsubscribe();
+// 5) 取消订阅
+off();
 ```
 
-### 使用全局单例
+## 通配符订阅
 
-```typescript
-import { EventBus } from 'omnibus';
+```ts
+import { EventBus } from 'omnibus-ts';
 
-// 获取全局单例
-const bus = EventBus.getInstance<MyEvents>();
-
-// 在应用的不同部分使用相同的实例
-// 在组件 A 中
-bus.subscribe('message:received', (data) => {
-  console.log(`收到消息: ${data.content}`);
-});
-
-// 在组件 B 中
-bus.publish('message:received', { id: '456', content: '你好！' });
-```
-
-### 使用通配符事件
-
-```typescript
-import { EventBus } from 'omnibus';
+interface MyEvents {
+  'user:login': { userId: string; username: string };
+  'message:received': { id: string; content: string };
+}
 
 const bus = new EventBus<MyEvents>();
 
-// 订阅所有事件
-bus.subscribe('*', (data) => {
-  console.log(`事件 ${data.event} 被触发，数据:`, data.data);
+bus.subscribe('*', ({ event, data }) => {
+  console.log('触发事件:', event, '数据:', data);
 });
 
-// 发布任意事件都会触发上面的订阅
-bus.publish('user:login', { userId: '123', username: 'zhangsan' });
-bus.publish('message:received', { id: '456', content: '你好！' });
+bus.publish('user:login', { userId: '1', username: 'alice' });
 ```
 
-### 一次性订阅
+## 一次性订阅
 
-```typescript
-import { EventBus } from 'omnibus';
-
+```ts
 const bus = new EventBus<MyEvents>();
 
-// 一次性订阅，只会触发一次
 bus.once('user:login', (data) => {
-  console.log(`用户 ${data.username} 首次登录`);
+  console.log('首次登录:', data.username);
 });
 
-// 第一次触发会执行回调
-bus.publish('user:login', { userId: '123', username: 'zhangsan' });
-// 第二次触发不会执行回调
-bus.publish('user:login', { userId: '123', username: 'zhangsan' });
+bus.publish('user:login', { userId: '1', username: 'alice' }); // 触发
+bus.publish('user:login', { userId: '1', username: 'alice' }); // 不再触发
 ```
 
-## 开发过程
+## API
+- `new EventBus<T>()`：创建事件总线，`T` 为事件名到负载的映射
+- `EventBus.getInstance<T>()`：获取/初始化全局单例
+- `subscribe(eventName, callback)`：订阅事件；返回取消订阅函数
+- `unsubscribe(eventName, callback)`：取消订阅
+- `publish(eventName, payload)`：异步发布事件
+- `once(eventName, callback)`：一次性订阅
 
-1. 初始化项目结构
-   - 创建基本的 TypeScript 项目
-   - 配置 tsconfig.json 和 rollup.config.js
+通配符回调签名：`{ event: string; data: any }`
 
-2. 实现核心功能
-   - 设计 EventBus 类及其接口
-   - 实现事件订阅、发布和取消订阅功能
-   - 添加全局单例支持
-   - 实现通配符事件监听
-   - 添加异步事件队列
-   - 实现一次性订阅功能
+## 构建与开发（操作过程）
+1. 安装依赖
+   ```bash
+   npm install
+   ```
+2. 构建产物（生成 CJS 与 ESM）
+   ```bash
+   npm run build
+   ```
+   - 输出：`dist/index.cjs.js`、`dist/index.esm.js`、类型声明 `dist/index.d.ts`
+3. 本地调试引用
+   - 方式 A：link
+     ```bash
+     # 在本项目中
+     npm run build
+     npm link
 
-3. 解决类型问题
-   - 修复 TypeScript 类型错误，特别是在 once 方法中的类型兼容性问题
-   - 确保通配符事件与具体事件类型的兼容性
+     # 在你的应用项目中
+     npm link omnibus-ts
+     ```
+   - 方式 B：file 引用
+     在应用 `package.json` 中：
+     ```json
+     {
+       "dependencies": {
+         "omnibus-ts": "file:/absolute/path/to/OmniBus"
+       }
+     }
+     ```
+4. 发布到 npm（可选）
+   - 登录（使用官方源）：
+     ```bash
+     npm config set registry https://registry.npmjs.org/
+     npm login
+     ```
+   - 发布：
+     ```bash
+     npm publish --access public
+     ```
+   - 若使用镜像或需要切换源，请在 `login/publish` 命令后附带 `--registry=...`
 
-4. 构建配置
-   - 添加 `"type": "module"` 到 package.json 以支持 ES 模块
-   - 配置 Rollup 以生成 CommonJS 和 ES 模块格式的输出
-
-5. 测试和发布
-   - 验证所有功能正常工作
-   - 发布到 npm 仓库
+## 版本与兼容性
+- 语义化版本：遵循 SemVer
+- 运行时环境：现代 Node/浏览器（编译目标 `ES2019`）
+- 类型支持：内置 TypeScript 声明（`dist/index.d.ts`）
 
 ## 许可证
-
 MIT

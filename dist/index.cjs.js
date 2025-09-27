@@ -5,16 +5,16 @@
  * - 支持 "*" 通配事件
  * - 支持异步队列（publish 异步执行）
  */
-class EventBus {
+class omniBus {
     constructor() {
         this.events = {};
     }
     /** 全局单例 */
     static getInstance() {
-        if (!EventBus._instance) {
-            EventBus._instance = new EventBus();
+        if (!omniBus._instance) {
+            omniBus._instance = new omniBus();
         }
-        return EventBus._instance;
+        return omniBus._instance;
     }
     /** 订阅 */
     subscribe(eventName, callback) {
@@ -53,6 +53,6 @@ class EventBus {
         this.subscribe(eventName, wrapper);
     }
 }
-EventBus._instance = null;
+omniBus._instance = null;
 
-exports.EventBus = EventBus;
+exports.omniBus = omniBus;
